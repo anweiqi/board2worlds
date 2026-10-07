@@ -5,6 +5,7 @@ const ALLOWED_HOST_SUFFIXES = [
   "googleapis.com",
   "googleusercontent.com",
   "pinimg.com",
+  "vercel-storage.com",
 ];
 
 /** Streams remote assets (SPZ splats, panos, thumbnails) so the browser viewer avoids CORS. */

@@ -1,9 +1,7 @@
 import { NextResponse } from "next/server";
-import { promises as fs } from "fs";
-import path from "path";
 import { loadImage } from "@/lib/images";
 import { composeScene } from "@/lib/openai";
-import { loadRun, runPublicDir, saveRun } from "@/lib/runs";
+import { loadRun, saveGeneratedImage, saveRun } from "@/lib/runs";
 
 export const maxDuration = 300;
 
@@ -28,10 +26,8 @@ export async function POST(req: Request) {
     const refs = await Promise.all(indices.map((i) => loadImage(run.images[i])));
     const png = await composeScene(refs, run.spec);
 
-    const dir = await runPublicDir(run.id);
     const fileName = `scene-${Date.now()}.png`;
-    await fs.writeFile(path.join(dir, fileName), png);
-    const publicPath = `/generated/${run.id}/${fileName}`;
+    const publicPath = await saveGeneratedImage(run.id, fileName, png, "image/png");
 
     run.mode = "fused";
     run.scene_image = publicPath;

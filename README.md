@@ -21,6 +21,19 @@ OPENAI_API_KEY=      # optional if already exported in your shell
 npm run dev   # http://localhost:3000
 ```
 
+## Deploy (Vercel)
+
+Serverless cannot keep `data/runs/` on disk. Production uses [Vercel Blob](https://vercel.com/docs/storage/vercel-blob) when `BLOB_READ_WRITE_TOKEN` is present. Set these env vars in the Vercel project:
+
+```
+OPENAI_API_KEY
+WORLDLABS_API_KEY   # or WORLD_LABS_API_KEY
+SITE_PASSWORD       # optional gate so random visitors cannot spend your credits
+BLOB_READ_WRITE_TOKEN
+```
+
+Hobby plans cap serverless functions at ~60–300s depending on the account. Analyze is ~1 min; fused compose is ~2 min and may time out on the lowest plan. Hero-pin generation only needs ~10s to submit, then the client polls.
+
 ## Flow
 
 1. **Board images** – paste one image URL per line, or click *Load example board* (the 14 pins in
