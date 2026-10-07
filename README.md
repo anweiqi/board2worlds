@@ -1,36 +1,53 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Board2Worlds
 
-## Getting Started
+Demo: a list of Pinterest pin images → VLM board understanding → one explorable 3D world via the
+[World Labs World API (Marble)](https://docs.worldlabs.ai/api), viewed in-browser with
+three.js + [Spark](https://sparkjs.dev).
 
-First, run the development server:
+## Setup
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Fill in `.env.local`:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```
+WORLDLABS_API_KEY=   # https://platform.worldlabs.ai  (API keys page; needs credits)
+OPENAI_API_KEY=      # optional if already exported in your shell
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run dev   # http://localhost:3000
+```
 
-## Learn More
+## Flow
 
-To learn more about Next.js, take a look at the following resources:
+1. **Board images** – paste one image URL per line, or click *Load example board* (the 14 pins in
+   `public/board/`).
+2. **Analyze** – `POST /api/analyze` sends all pins to the OpenAI vision model with a structured
+   output schema and returns a `SceneSpec`: per-pin role (`scene | landmark | detail | material |
+   mood | ignore`) and scene score, world title/style/layout/zones, materials, palette, key objects,
+   a hero pin, 3–5 reference pins, a Marble text prompt and an image-composer prompt.
+3. Pick a mode:
+   - **Hero pin → world** – the best wide scene pin (click to override) + the prompt are sent to
+     Marble directly.
+   - **Fused scene → world** – `POST /api/compose` asks `gpt-image` to paint one eye-level wide
+     scene from the selected reference pins; you approve it, then it is sent to Marble.
+4. **Generate** – `POST /api/generate` uploads the image as a World Labs media asset and calls
+   `worlds:generate`. The UI polls `GET /api/runs/:id` (which polls `operations/:id`) until done
+   (~5 min). Each world consumes World Labs credits.
+5. **World** – Marble share link, SPZ download, and an in-page Spark viewer (drag to look, WASD to
+   move). SPZ/thumbnails are streamed through `/api/proxy` to avoid CORS.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Runs are stored as JSON in `data/runs/`; composed scene images in `public/generated/<run>/`.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Notes
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Models: `OPENAI_VISION_MODEL` (default `gpt-5.4`), `OPENAI_IMAGE_MODEL` (default `gpt-image-2`),
+  `WORLDLABS_MODEL` (default `marble-1.1`; choose `marble-1.1-plus` in the UI for larger outdoor
+  worlds).
+- Pinterest CDN URLs are downloaded server-side and uploaded as media assets rather than passed as
+  `source: "uri"`, since World Labs servers may be hotlink-blocked.
+- Marble SPZ files use the `marble_raw_opencv` frame; the viewer applies the documented 180° X
+  rotation plus `metric_scale_factor` / `ground_plane_offset`.
