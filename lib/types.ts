@@ -60,6 +60,7 @@ export interface WorldResult {
   display_name?: string;
   world_marble_url?: string;
   assets?: WorldAssets;
+  permission?: { public?: boolean; allow_id_access?: boolean } | null;
 }
 
 export type RunStatus =

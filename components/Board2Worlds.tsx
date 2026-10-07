@@ -35,6 +35,7 @@ export default function Board2Worlds({ initialRunId }: { initialRunId?: string }
   const [inputImage, setInputImage] = useState<string | null>(null);
   const [refIndices, setRefIndices] = useState<number[]>([]);
   const [wlModel, setWlModel] = useState("marble-1.1");
+  const [shareable, setShareable] = useState(true);
   const [history, setHistory] = useState<
     { id: string; title?: string; status: string; mode: string; thumbnail?: string }[]
   >([]);
@@ -150,6 +151,7 @@ export default function Board2Worlds({ initialRunId }: { initialRunId?: string }
         input_image: inputImage,
         text_prompt: prompt,
         model: wlModel,
+        shareable,
       });
       adoptRun(data.run);
       refreshHistory();
@@ -461,6 +463,14 @@ export default function Board2Worlds({ initialRunId }: { initialRunId?: string }
                       <option value="marble-1.1-plus">marble-1.1-plus (larger outdoor)</option>
                     </select>
                   </label>
+                  <label className="flex items-center gap-1.5 text-xs text-zinc-500">
+                    <input
+                      type="checkbox"
+                      checked={shareable}
+                      onChange={(e) => setShareable(e.target.checked)}
+                    />
+                    Public share link
+                  </label>
                   <button
                     disabled={!canGenerate || busy !== null || run.status === "generating"}
                     onClick={onGenerate}
@@ -542,6 +552,13 @@ export default function Board2Worlds({ initialRunId }: { initialRunId?: string }
               />
             ) : (
               <div className="text-sm text-zinc-400">No splat URL in response.</div>
+            )}
+            {world.permission && !world.permission.public && !world.permission.allow_id_access && (
+              <p className="mt-3 text-xs text-amber-300/90">
+                This world is private: the Marble link only opens when logged in with the account
+                that owns the API key. Use the viewer above or tick &quot;Public share link&quot;
+                before generating.
+              </p>
             )}
             {world.assets?.caption && (
               <p className="mt-3 text-xs text-zinc-400">{world.assets.caption}</p>

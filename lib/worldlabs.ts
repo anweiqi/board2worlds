@@ -74,12 +74,16 @@ export async function generateWorld(opts: {
   mediaAssetId: string;
   textPrompt?: string;
   model?: string;
+  /** Make the Marble share link openable without logging in (default true). */
+  shareable?: boolean;
 }): Promise<Operation> {
+  const shareable = opts.shareable ?? true;
   return wl<Operation>("/worlds:generate", {
     method: "POST",
     body: JSON.stringify({
       display_name: opts.displayName,
       model: opts.model || WORLDLABS_MODEL,
+      permission: { public: shareable, allow_id_access: shareable },
       world_prompt: {
         type: "image",
         image_prompt: { source: "media_asset", media_asset_id: opts.mediaAssetId },

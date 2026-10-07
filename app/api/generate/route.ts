@@ -12,6 +12,7 @@ export async function POST(req: Request) {
       input_image?: string;
       text_prompt?: string;
       model?: string;
+      shareable?: boolean;
     };
     if (!body.run_id) return NextResponse.json({ error: "run_id required" }, { status: 400 });
     const run = await loadRun(body.run_id);
@@ -31,6 +32,7 @@ export async function POST(req: Request) {
       mediaAssetId,
       textPrompt: textPrompt || undefined,
       model,
+      shareable: body.shareable ?? true,
     });
 
     run.world_input_image = inputImage;
