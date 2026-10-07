@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { loadRun, saveRun } from "@/lib/runs";
-import { getOperation, getWorld } from "@/lib/worldlabs";
+import { getOperation, getWorld, normalizeWorld } from "@/lib/worldlabs";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -9,6 +9,16 @@ export async function GET(_req: Request, ctx: Ctx) {
   const { id } = await ctx.params;
   const run = await loadRun(id);
   if (!run) return NextResponse.json({ error: "run not found" }, { status: 404 });
+
+  // Recover a succeeded run whose world snapshot was not stored.
+  if (run.status === "succeeded" && run.worldlabs?.world_id && !run.worldlabs.world?.id) {
+    try {
+      run.worldlabs.world = await getWorld(run.worldlabs.world_id);
+      await saveRun(run);
+    } catch (err) {
+      console.error("[runs] world refetch failed", err);
+    }
+  }
 
   if (run.status === "generating" && run.worldlabs?.operation_id) {
     try {
@@ -22,7 +32,7 @@ export async function GET(_req: Request, ctx: Ctx) {
           run.worldlabs.error = op.error.message || JSON.stringify(op.error);
         } else {
           run.status = "succeeded";
-          let world = op.response ?? undefined;
+          let world = normalizeWorld(op.response);
           const worldId = world?.id || run.worldlabs.world_id;
           if (worldId) {
             try {

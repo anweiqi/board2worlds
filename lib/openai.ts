@@ -136,7 +136,6 @@ export async function composeScene(
     prompt,
     size: "1536x1024",
     quality: "high",
-    input_fidelity: "high",
     output_format: "png",
   });
 

@@ -5,7 +5,7 @@ const BASE = "https://api.worldlabs.ai/marble/v1";
 export const WORLDLABS_MODEL = process.env.WORLDLABS_MODEL || "marble-1.1";
 
 function apiKey() {
-  const key = process.env.WORLDLABS_API_KEY;
+  const key = process.env.WORLDLABS_API_KEY || process.env.WORLD_LABS_API_KEY;
   if (!key) throw new Error("WORLDLABS_API_KEY is not set (add it to .env.local)");
   return key;
 }
@@ -27,7 +27,8 @@ async function wl<T>(path: string, init: RequestInit = {}): Promise<T> {
 }
 
 interface PrepareUploadResponse {
-  media_asset: { id: string };
+  // OpenAPI spec uses media_asset_id; quickstart docs show id. Accept both.
+  media_asset: { media_asset_id?: string; id?: string };
   upload_info: {
     upload_url: string;
     upload_method: string;
@@ -52,7 +53,9 @@ export async function uploadMediaAsset(img: LoadedImage, fileName: string): Prom
   if (!put.ok) {
     throw new Error(`Media upload failed: ${put.status} ${await put.text()}`);
   }
-  return prep.media_asset.id;
+  const id = prep.media_asset.media_asset_id || prep.media_asset.id;
+  if (!id) throw new Error(`prepare_upload returned no media asset id: ${JSON.stringify(prep)}`);
+  return id;
 }
 
 export interface Operation {
@@ -92,9 +95,22 @@ export async function getOperation(id: string): Promise<Operation> {
   return wl<Operation>(`/operations/${encodeURIComponent(id)}`);
 }
 
+type RawWorld = WorldResult & { world_id?: string };
+
+/** The API returns `world_id`; docs show `id`. Normalize so `id` is always set. */
+export function normalizeWorld(raw: RawWorld | null | undefined): WorldResult | undefined {
+  if (!raw) return undefined;
+  const id = raw.id || raw.world_id;
+  return { ...raw, id: id ?? "" };
+}
+
 export async function getWorld(id: string): Promise<WorldResult> {
-  const data = await wl<{ world: WorldResult }>(`/worlds/${encodeURIComponent(id)}`);
-  return data.world;
+  // Docs show `{ world: {...} }` but the live API returns the world object directly.
+  const data = await wl<RawWorld | { world: RawWorld }>(`/worlds/${encodeURIComponent(id)}`);
+  const raw = "world" in data && data.world ? data.world : (data as RawWorld);
+  const world = normalizeWorld(raw);
+  if (!world?.id) throw new Error(`Unexpected world response: ${JSON.stringify(data).slice(0, 200)}`);
+  return world;
 }
 
 export async function getCredits(): Promise<unknown> {
