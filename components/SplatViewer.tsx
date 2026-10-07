@@ -49,8 +49,10 @@ export default function SplatViewer({
         0.05,
         1000,
       );
-      // Stand at the origin at eye height, look forward (-Z).
-      camera.position.set(0, 0, 0);
+      // After metric scaling + ground alignment the ground is at y=0 and +y is up.
+      // Stand at eye height, look forward (-Z; Marble's raw +Z after the X rotation).
+      const hasMetric = !!metricScaleFactor && metricScaleFactor > 0;
+      camera.position.set(0, hasMetric ? 1.6 : 0, 0);
 
       const spark = new SparkRenderer({ renderer });
       scene.add(spark);
